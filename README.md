@@ -1,28 +1,45 @@
-# Example projects for the unofficial PRU-GCC port
+# hc-sr04-range-sensor
 
-The pru-gcc toolchain source and build instructions are located at https://github.com/dinuxbg/gnupru .
+This is yet another HC-SR04 range sensor example for PRU. In an attempt to differentiate, it was written for the shiny new remoteproc/rpmsg driver, instead of the old uio_pruss.
 
-The following simple examples are available. Check the README.md in each subdirectory for detailed instructions.
+To understand the rpmsg code here please visit http://processors.wiki.ti.com/index.php/PRU_Training:_Hands-on_Labs
 
-## blinking-led
-The "hello world" example of the embedded world. Both PRU cores of a Beaglebone Black are started to toggle GPIOs. PRU0 core is programmed in C, while the firmware for PRU1 core is written in assembler.
+## Wiring the sensor
+There is a good explanation in https://github.com/HudsonWerks/Range-Sensor-PRU, so I'll just quote it:
 
-Two host loader examples are provided - one for the old UIO mechanism, and one for the new Remoteproc driver.
+> Hardware configuration:
+> 
+>         * TRIGGER               P8_12 gpio1[12] GPIO44  out     pulldown                Mode: 7 
+>         * ECHO                  P8_11 gpio1[13] GPIO45  in      pulldown                Mode: 7 *** with R 1KOhm
+>         * GND                   P9_1 or P9_2    GND
+>         * VCC                   P9_5 or P9_6    VDD_5V
+>         
+> Schematic:
+>         
+> ![ch6_pru_range_sensor](https://cloud.githubusercontent.com/assets/4622940/8599064/4d14cb26-262c-11e5-9c46-1961dc67bdcc.png)
+> 
+> NOTE: The resistors are important. Since the sensor emits a 5V signal, and the Beaglebone Black's input pins are only 3.3V, using resistors or voltage converters is crucial for preventing damage to your board.
 
-## blinking-led++
-Blinking led firmware written in C++.
+## Building and running the example
 
-## hc-sr04-range-sensor
-Remoteproc/rpmsg example for measuring distance using the HC-SR04 ultrasound range sensor.
+First setup remoteproc driver by following [../REMOTEPROC.md](../REMOTEPROC.md).
 
-## md5-check
-Calculate MD5 checksum for a known data chunk on both the ARM loader and one PRU core. Then UIO-based loader reads and compares the two checksums.
+Build and install firmware:
 
-## ov7670-cam
-PRUs on a Beaglebone White fetch RGB565 streams from two OV7670 camera modules. The UIO host-side loader then saves the images from the shared DDR-SDRAM memory into PPM files. The example shows how to access shared buffers in DDR-SDRAM, and how to write time-critical code sequences in inline assembly.
+	cd hc-sr04-range-sensor
+	make
+	sudo cp out/pru-halt.elf /lib/firmware/am335x-pru0-fw
+	sudo cp out/hc-sr04-range-sensor.elf /lib/firmware/am335x-pru1-fw
+	sync
+	reboot # Needed to load the firmware
 
-## sim-hello
-Simulate your PRU executable on your PC. Note that pru-run is an ISA only simulator. Digital I/O is not simulated. Neither is OCP access.
+To see the range measurement result in millimeters:
 
-## sim-hello++
-Same simulator project as sim-hello, but written in C++ instead of C.
+	sudo bash
+	echo hello > /dev/rpmsg_pru31
+	cat /dev/rpmsg_pru31   # Press Ctrl+C to exit
+
+## Acknowledgements
+ * Sensor idea and DTS from https://github.com/HudsonWerks/Range-Sensor-PRU
+ * Remoteproc/RPMsg code from git://git.ti.com/pru-software-support-package/pru-software-support-package.git
+
