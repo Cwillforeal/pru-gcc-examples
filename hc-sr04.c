@@ -38,15 +38,15 @@
 
 #define TRIG_PULSE_US		10
 
-#define GPIO1_BASE		0x4804C000
+#define GPIO0_BASE		0x44E07000
 
-#define GPIO1_OE		(*(volatile uint32_t *)(GPIO1_BASE + 0x134))
-#define GPIO1_DATAIN		(*(volatile uint32_t *)(GPIO1_BASE + 0x138))
-#define GPIO1_CLEARDATAOUT	(*(volatile uint32_t *)(GPIO1_BASE + 0x190))
-#define GPIO1_SETDATAOUT	(*(volatile uint32_t *)(GPIO1_BASE + 0x194))
+#define GPIO0_OE		(*(volatile uint32_t *)(GPIO0_BASE + 0x134))
+#define GPIO0_DATAIN		(*(volatile uint32_t *)(GPIO0_BASE + 0x138))
+#define GPIO0_CLEARDATAOUT	(*(volatile uint32_t *)(GPIO0_BASE + 0x190))
+#define GPIO0_SETDATAOUT	(*(volatile uint32_t *)(GPIO0_BASE + 0x194))
 
-#define TRIG_BIT		12
-#define ECHO_BIT		13
+#define TRIG_BIT		15
+#define ECHO_BIT		14
 
 void hc_sr04_init(void)
 {
@@ -57,8 +57,8 @@ void hc_sr04_init(void)
 	 * Don't bother with PRU GPIOs. Our timing requirements allow
 	 * us to use the "slow" system GPIOs.
 	 */
-	GPIO1_OE &= ~(1u << TRIG_BIT);	/* output */
-	GPIO1_OE |= (1u << ECHO_BIT);	/* input */
+	GPIO0_OE &= ~(1u << TRIG_BIT);	/* output */
+	GPIO0_OE |= (1u << ECHO_BIT);	/* input */
 }
 
 int hc_sr04_measure_pulse(void)
@@ -66,9 +66,9 @@ int hc_sr04_measure_pulse(void)
 	bool echo, timeout;
 
 	/* pulse the trigger for 10us */
-	GPIO1_SETDATAOUT = 1u << TRIG_BIT;
+	GPIO0_SETDATAOUT = 1u << TRIG_BIT;
 	__delay_cycles(TRIG_PULSE_US * (PRU_OCP_RATE_HZ / 1000000));
-	GPIO1_CLEARDATAOUT = 1u << TRIG_BIT;
+	GPIO0_CLEARDATAOUT = 1u << TRIG_BIT;
 
 	/* Enable counter */
 	PRU_CTRL.CYCLE = 0;
@@ -76,7 +76,7 @@ int hc_sr04_measure_pulse(void)
 
 	/* wait for ECHO to get high */
 	do {
-		echo = !!(GPIO1_DATAIN & (1u << ECHO_BIT));
+		echo = !!(GPIO0_DATAIN & (1u << ECHO_BIT));
 		timeout = PRU_CTRL.CYCLE > PRU_OCP_RATE_HZ;
 	} while (!echo && !timeout);
 
@@ -91,7 +91,7 @@ int hc_sr04_measure_pulse(void)
 
 	/* measure the "high" pulse length */
 	do {
-		echo = !!(GPIO1_DATAIN & (1u << ECHO_BIT));
+		echo = !!(GPIO0_DATAIN & (1u << ECHO_BIT));
 		timeout = PRU_CTRL.CYCLE > PRU_OCP_RATE_HZ;
 	} while (echo && !timeout);
 
